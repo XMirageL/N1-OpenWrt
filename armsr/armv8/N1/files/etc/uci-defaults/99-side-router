@@ -1,0 +1,25 @@
+#!/bin/sh
+
+# 1. 彻底关闭 LAN 口的 DHCPv4 与 IPv6 广播服务 (旁路由核心设置)
+uci set dhcp.lan.ignore='1'
+uci -q delete dhcp.lan.ra
+uci -q delete dhcp.lan.dhcpv6
+uci -q delete dhcp.lan.ndp
+uci set dhcp.lan.ra='disabled'
+uci set dhcp.lan.dhcpv6='disabled'
+uci set dhcp.lan.ndp='disabled'
+
+# 2. 关闭 dnsmasq 的无效 IPv6 解析记录返回 (防止科学上网分流受 IPv6 干扰)
+uci set dhcp.@dnsmasq[0].filter_aaaa='1'
+uci set dhcp.@dnsmasq[0].cachesize='8192'
+
+# 3. 旁路由防火墙优化：开启软件流量分载 (提升转发吞吐量) 与 LAN 口动态伪装 (Masquerade)
+# 注：开启 masq=1 可以避免主路由不支持对称路由导致的国内连接丢包/断流
+uci set firewall.@defaults[0].flow_offloading='1'
+uci set firewall.@defaults[0].syn_flood='1'
+uci set firewall.@zone[0].masq='1'
+
+uci commit dhcp
+uci commit firewall
+
+exit 0
